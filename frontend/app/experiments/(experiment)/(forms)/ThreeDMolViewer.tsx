@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import $3Dmol from '3dmol/build/3Dmol.js';
 // This import will be handled dynamically below, so no need for an import statement at the top.
 
 interface AtomSpec {
@@ -16,6 +17,7 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
     const [selectedResidues, setSelectedResidues] = useState<Record<string, boolean>>({});
     const [binderLength, setBinderLength] = useState(90);
     const fileInput = useRef<HTMLInputElement>(null);
+    const [data, setData] = useState<any>(null);
 
     useEffect(() => {
         (async () => {
@@ -28,12 +30,19 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
         })();
     }, []);
 
+    useEffect(() => {
+        if (viewer) {
+            updateStyles();
+        }
+    }, [selectedResidues]);
+
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file && viewer) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const result = e.target?.result as string;
+                setData(result);
                 viewer.addModel(result, "pdb");
                 updateStyles();
                 viewer.getModel().setClickable({}, true, (atom: AtomSpec) => {
@@ -51,15 +60,60 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
 
     const updateStyles = () => {
         if (!viewer) return;
-        viewer.setStyle({}, { cartoon: { color: 'grey', opacity: 0.2 } });
-        Object.keys(selectedResidues).forEach(residueKey => {
-            const [chain, resi] = residueKey.split(':');
+    
+        const allChains = new Set();
+        const chainsWithSelectedResidues = new Set();
+    
+        // First, reset styles for all residues
+        viewer.selectedAtoms({}).forEach((atom: { chain: unknown; resi: any; }) => {
+            allChains.add(atom.chain);
+            const residueKey = `${atom.chain}${atom.resi}`;
             if (selectedResidues[residueKey]) {
-                viewer.setStyle({ chain, resi }, { cartoon: { color: 'red', opacity: 1.0 } });
+              chainsWithSelectedResidues.add(atom.chain);
             }
-        });
-        viewer.render();
+          });
+      
+          if (Object.keys(selectedResidues).length === 0) {
+            // No residues selected, set all chains to fully visible
+            viewer.setStyle({}, { cartoon: { color: 'grey', opacity: 1.0 } });
+          } else {
+            // Set default style for all chains with higher transparency
+            viewer.setStyle({}, { cartoon: { color: 'grey', opacity: 0.2 } });
+      
+            // Set style for chains with selected residues to fully visible
+            chainsWithSelectedResidues.forEach(chain => {
+              viewer.setStyle({ chain }, { cartoon: { color: 'grey', opacity: 1.0 } });
+            });
+      
+            // Set style for selected residues
+            Object.keys(selectedResidues).forEach(residueKey => {
+              const chain = residueKey[0];
+              const resi = residueKey.slice(1);
+              viewer.setStyle({ chain, resi }, { cartoon: { color: 'red', opacity: 1.0 } });
+            });
+          }
+      
+          viewer.render();
     };
+
+    useEffect(() => {
+        if (viewer) {
+            const loadAndMakeClickable = async () => {
+                const data = await axios.get('https://files.rcsb.org/download/1UBQ.pdb').then(res => res.data);
+                viewer.addModel(data, "pdb");
+                viewer.getModel().setClickable({}, (atom: { chain: any; resi: any; }) => {
+                    const key = `${atom.chain}:${atom.resi}`;
+                    setSelectedResidues(prev => ({
+                        ...prev,
+                        [key]: !prev[key]
+                    }));
+                });
+                updateStyles();
+            };
+            loadAndMakeClickable();
+        }
+    }, [viewer]);
+    
 
     const formatSelectedResidues = () => {
         return Object.keys(selectedResidues).filter(key => selectedResidues[key]).join(', ');
@@ -77,7 +131,18 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
 
     return (
         <div>
-            <div id="container-01" style={{ width: '800px', height: '600px' }}></div>
+            <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                padding: '15px', 
+                margin: 'auto', 
+                width: '953px', 
+                height: '377px', 
+                boxSizing: 'border-box' // Includes padding in the width and height
+            }}>
+                <div id="container-01" style={{ width: '100%', height: '100%' }}></div>
+            </div>
             <input type="file" ref={fileInput} onChange={handleFileUpload} />
             <input type="text" value={formatSelectedResidues()} readOnly />
             <div>
