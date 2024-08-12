@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import {FileSelect} from '@/components/shared/FileSelect';
 
 interface AtomSpec {
     chain: string;
@@ -15,7 +16,9 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
     const [selectedResidues, setSelectedResidues] = useState<Record<string, boolean>>({});
     const [binderLength, setBinderLength] = useState(90);
     const fileInput = useRef<HTMLInputElement>(null);
+    const [pdbData, setPdbData] = useState<string | null>(null);
     const [data, setData] = useState<any>(null);
+    const [fileName, setFileName] = useState('');
 
     useEffect(() => {
         (async () => {
@@ -29,37 +32,85 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
     }, []);
 
     useEffect(() => {
+        const loadPDBFile = async () => {
+            if (viewer && fileName) { // Ensure there's a filename and viewer instance
+                try {
+                    const response = await axios.get(fileName, { responseType: 'text' });
+                    viewer.addModel(response.data, "pdb");
+                    viewer.zoomTo(); // Adjust the camera to the new model
+                    viewer.render();
+                    updateStyles(); // Update visual styles if needed
+                } catch (error) {
+                    console.error("Error loading PDB file:", error);
+                }
+            }
+        };
+        loadPDBFile();
+    }, [viewer, fileName]); // Depend on fileName to refetch when it changes
+
+    useEffect(() => {
         if (viewer) {
             updateStyles();
         }
     }, [selectedResidues]);
 
-    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file && viewer) {
+    const handleFileUpload = (fileName: string) => {
+        // Access the file object directly from the input reference
+        setFileName(fileName);
+        const file = fileInput.current?.files?.[0];
+        if (file && viewer && file.name === fileName) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const result = e.target?.result as string;
-                setData(result);
-                viewer.addModel(result, "pdb");
-                updateStyles();
+                const pdbData = e.target?.result as string;
+                setData(pdbData);
+                viewer.addModel(pdbData, "pdb");
+                viewer.zoomTo(); // Ensure the viewer adjusts to the loaded model
+                viewer.render();
+                // Enable clicking to select hotspots only after model is loaded
                 viewer.getModel().setClickable({}, true, (atom: AtomSpec) => {
                     const residueKey = `${atom.chain}${atom.resi}`;
-                    setSelectedResidues(prev => {
-                        const newResidues = { ...prev };
-                        if (newResidues[residueKey]) {
-                            delete newResidues[residueKey];  // Remove the residue from selected if it's already selected
-                        } else {
-                            newResidues[residueKey] = true;  // Add the residue as selected if it's not already
-                        }
-                        return newResidues;
-                    });
+                    setSelectedResidues(prev => ({
+                        ...prev,
+                        [residueKey]: !prev[residueKey]
+                    }));
                 });
-                viewer.render();
             };
             reader.readAsText(file);
+        } else {
+            console.error("File selected does not match or viewer is not initialized");
         }
     };
+
+    // Ensure fileInput is accessible and used correctly
+// const handleFileSelection = (fileData: any, fileName: string) => {
+//     // Trigger native file input click
+//     setData(fileData);
+//     setFileName(fileName);  // Assuming you keep a fileName state
+//     if (viewer) {
+//         viewer.addModel(fileData, "pdb");
+//         viewer.render();
+//     }
+// };
+
+// const handleFileSelection = (selectedFileName: string) => {
+//     setFileName(selectedFileName);
+//   };
+
+// Handling file change from the native file input
+const handleFileChange = () => {
+    const file = fileInput.current?.files?.[0];
+    if (file && viewer) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const result = e.target?.result as string;
+            setData(result);
+            viewer.addModel(result, "pdb");
+            viewer.render();
+            updateStyles();
+        };
+        reader.readAsText(file);
+    }
+};
 
     const updateStyles = () => {
         if (!viewer) return;
@@ -161,7 +212,7 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
     };
     
     return (
-        <div className="relative">
+        <div>
             <div style={{ 
                 display: 'flex', 
                 justifyContent: 'center', 
@@ -174,7 +225,13 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
             }}>
                 <div id="container-01" style={{ width: '100%', height: '100%' }}></div>
             </div>
-            <input type="file" ref={fileInput} onChange={handleFileUpload} />
+            <FileSelect
+        onValueChange={handleFileUpload}
+        value={fileName}
+        label="Upload PDB file"
+        globPatterns={['.pdb']}
+      />
+
             <input type="text" value={formatSelectedResidues()} onChange={handleResidueInputChange} readOnly={false} />
             <div>
                 <label>Binder Length:</label>

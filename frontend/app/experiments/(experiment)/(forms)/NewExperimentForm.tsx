@@ -139,7 +139,6 @@ export default function NewExperimentForm({ task }: { task: any }) {
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit((values) => onSubmit(values))}>
-        <ThreeDMolViewer onSubmit={handleViewerSubmit} />
           <Card className="mb-2">
             <CardContent>
               <div className="flex items-center gap-1">
@@ -157,6 +156,12 @@ export default function NewExperimentForm({ task }: { task: any }) {
                   )}
                 />
               </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent>
+            <ThreeDMolViewer onSubmit={handleViewerSubmit} />
             </CardContent>
           </Card>
           {!!groupedInputs?.standard && (
