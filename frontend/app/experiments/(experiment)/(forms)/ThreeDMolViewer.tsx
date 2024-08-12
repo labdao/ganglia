@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import $3Dmol from '3dmol/build/3Dmol.js';
-// This import will be handled dynamically below, so no need for an import statement at the top.
 
 interface AtomSpec {
     chain: string;
@@ -47,10 +45,15 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
                 updateStyles();
                 viewer.getModel().setClickable({}, true, (atom: AtomSpec) => {
                     const residueKey = `${atom.chain}${atom.resi}`;
-                    setSelectedResidues(prev => ({
-                        ...prev,
-                        [residueKey]: !prev[residueKey],
-                    }));
+                    setSelectedResidues(prev => {
+                        const newResidues = { ...prev };
+                        if (newResidues[residueKey]) {
+                            delete newResidues[residueKey];  // Remove the residue from selected if it's already selected
+                        } else {
+                            newResidues[residueKey] = true;  // Add the residue as selected if it's not already
+                        }
+                        return newResidues;
+                    });
                 });
                 viewer.render();
             };
@@ -115,9 +118,14 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
     }, [viewer]);
     
 
-    const formatSelectedResidues = () => {
-        return Object.keys(selectedResidues).filter(key => selectedResidues[key]).join(', ');
-    };
+    
+  const formatSelectedResidues = () => {
+    return Object.keys(selectedResidues).map((residueKey) => {
+      const chain = residueKey[0];
+      const index = residueKey.slice(1);
+      return `${chain}${index}`;
+    }).join(', ');
+  };
 
     const handleBinderLengthChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setBinderLength(Number(event.target.value));
@@ -129,6 +137,29 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
         onSubmit({ pdb: pdbFile, binderLength, hotspots });
     };
 
+    const handleResidueInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const input = event.target.value;
+        const newSelectedResidues: Record<string, boolean> = {};
+    
+        const residues = input.split(',').map(res => res.trim()).filter(res => res);
+    
+        residues.forEach(residue => {
+            const match = residue.match(/^([a-zA-Z]+)(\d+)$/); 
+    
+            if (match) {
+                const chain = match[1].toUpperCase(); 
+                const resi = parseInt(match[2], 10);
+                if (!isNaN(resi)) {
+                    const key = `${chain}${resi}`; 
+                    newSelectedResidues[key] = true; 
+                }
+            }
+        });
+    
+        setSelectedResidues(newSelectedResidues);
+        updateStyles();
+    };
+    
     return (
         <div>
             <div style={{ 
@@ -144,7 +175,7 @@ const ThreeDMolViewer: React.FC<ThreeDMolViewerProps> = ({ onSubmit }) => {
                 <div id="container-01" style={{ width: '100%', height: '100%' }}></div>
             </div>
             <input type="file" ref={fileInput} onChange={handleFileUpload} />
-            <input type="text" value={formatSelectedResidues()} readOnly />
+            <input type="text" value={formatSelectedResidues()} onChange={handleResidueInputChange} readOnly={false} />
             <div>
                 <label>Binder Length:</label>
                 <input
