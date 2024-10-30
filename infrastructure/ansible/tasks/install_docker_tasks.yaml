@@ -36,6 +36,7 @@
 - name: Define base docker config
   ansible.builtin.set_fact:
     docker_base_config:
+      data-root: /opt/docker
       live-restore: true
       max-concurrent-downloads: 20
       max-download-attempts: 5

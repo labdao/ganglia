@@ -8,13 +8,13 @@
 - name: Cuda toolkit install
   become: true
   ansible.builtin.apt:
-    pkg: cuda-toolkit-12-4
+    pkg: cuda-toolkit=12.6.2-1
     update_cache: true
 
 - name: Cuda Driver install
   become: true
   ansible.builtin.apt:
-    pkg: cuda-drivers-550
+    pkg: cuda-drivers=565.57.01-0ubuntu1
 
 # Nvidia container toolkit #
 # https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
@@ -32,7 +32,7 @@
 - name: Install nvidia toolkit
   become: true
   ansible.builtin.apt:
-    pkg: nvidia-container-toolkit=1.14.6-1
+    pkg: nvidia-container-toolkit=1.16.2-1
     update_cache: true
 
 - name: Ensure Nvidia persitence daemon is started
