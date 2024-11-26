@@ -35,11 +35,43 @@
       - tree
       - net-tools
 
-- name: Install required pip packages
+        # - name: Install required pip packages
+        #   become: true
+        #   ansible.builtin.pip:
+        #     name:
+        #       - pip
+        #       - boto3
+        #       - pyopenssl
+        #      extra_args: --break-system-packages
+        #
+
+- name: allow ipv4 forwarding
   become: true
-  ansible.builtin.pip:
-    name:
-      - pip
-      - boto3
-      - pyopenssl
-        # extra_args: --break-system-packages
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: allow ipv6 forwarding
+  become: true
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: '1'
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: Enable UFW
+  become: true
+  community.general.ufw:
+    state: enabled
+
+- name: Open ssh port
+  become: true
+  community.general.ufw:
+    rule: allow
+    state: reloaded
+    port: "22"
+    proto: "tcp"
