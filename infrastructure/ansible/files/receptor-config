@@ -1,5 +1,0 @@
-PGHOST=terraform-20230620164721003000000001.cqbgzlch0qtq.us-east-1.rds.amazonaws.com
-PGUSER=receptor
-PGDATABASE=receptor
-PGSSLMODE=verify-ca
-PGSSLROOTCERT={{ receptor_dir }}/global-bundle.pem

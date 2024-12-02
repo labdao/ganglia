@@ -4,5 +4,4 @@ roles:
 collections:
   - name: community.general
   - name: community.docker
-  - name: amazon.aws
   - name: community.aws

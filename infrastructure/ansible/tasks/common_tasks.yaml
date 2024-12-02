@@ -75,3 +75,9 @@
     state: reloaded
     port: "22"
     proto: "tcp"
+
+- name: deny other incoming
+  become: true
+  community.general.ufw:
+    rule: deny
+    direction: "incoming"

@@ -7,13 +7,6 @@
     go_version: 1.20.3
     owner: labdao
   tasks:
-    # Must provide limit flag to ensure running against correct environment
-    # - name: Checking if limit is provided
-    #   ansible.builtin.fail:
-    #     msg: "you must use -l or --limit"
-    #   when: ansible_limit is not defined
-    #   run_once: true
-
     - name: Run common tasks
       ansible.builtin.include_tasks: tasks/common_tasks.yaml
 
