@@ -32,7 +32,7 @@
 - name: Install nvidia toolkit
   become: true
   ansible.builtin.apt:
-    pkg: nvidia-container-toolkit=1.16.2-1
+    pkg: nvidia-container-toolkit=1.17.0-1
     update_cache: true
 
 - name: Ensure Nvidia persitence daemon is started

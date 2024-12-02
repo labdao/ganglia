@@ -1,0 +1,22 @@
+# https://pkgs.tailscale.com/stable/#ubuntu-jammy
+- name: Get Tailscale GPG key
+  become: true
+  ansible.builtin.apt_key:
+    url: https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.noarmor.gpg
+
+- name: Add Tailscale Repository
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb https://pkgs.tailscale.com/stable/ubuntu {{ ansible_distribution_release }} main
+    state: present
+
+- name: Install tailscale
+  become: true
+  ansible.builtin.apt:
+    pkg: tailscale
+    update_cache: true
+
+- name: Ensure Tailscale daemon is started
+  become: true
+  ansible.builtin.systemd:
+    name: tailscaled

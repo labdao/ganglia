@@ -4,13 +4,7 @@
   hosts: "all"
   gather_facts: true
   vars:
-    nvidia_distribution: ubuntu2204
-    ipfs_version: "0.18.0"
-    ipfs_path: "/opt/ipfs"
     go_version: 1.20.3
-    bacalhau_version: "v1.2.0"
-    bacalhau_node_type: "compute"
-    ipfs_connect: /ip4/127.0.0.1/tcp/5001
     owner: labdao
   tasks:
     # Must provide limit flag to ensure running against correct environment
@@ -46,26 +40,13 @@
       ansible.builtin.include_tasks: tasks/install_gpu_tasks.yaml
       when: num_of_gpus | int > 0 or (force_gpu_install is defined and force_gpu_install | bool)
 
+    # Tailscale
+    - name: Install tailscale
+      ansible.builtin.include_tasks: tasks/install_tailscale_tasks.yaml
+
     # Ensure handlers are restarted before continuing
     - name: flush handlers
       ansible.builtin.meta: flush_handlers
-
-        # # Install IPFS
-        # - name: Install IPFS
-        #   ansible.builtin.include_tasks: tasks/install_ipfs_tasks.yaml
-        #   tags: ipfs_install
-
-        # # Run Bacalhau agent
-        # - name: Run Baclahau agent
-        #   ansible.builtin.include_tasks: tasks/install_bacalhau_tasks.yaml
-        #   tags: bacalhau
-
-        # # Only pull container images when doing packer build
-        # - name: Pull common containers
-        #   ansible.builtin.include_tasks: tasks/pull_common_containers.yaml
-        #   tags:
-        #     - never
-        #     - packer
 
   handlers:
     - name: Reload systemd
@@ -78,10 +59,3 @@
       ansible.builtin.service:
         name: docker
         state: restarted
-
-    - name: Restart Bacalhau
-      become: true
-      ansible.builtin.service:
-        name: compute
-        state: restarted
-        enabled: true

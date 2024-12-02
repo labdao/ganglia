@@ -44,7 +44,7 @@
     # Nvidia
     - name: Get Nvidia drivers apt key
       ansible.builtin.get_url:
-        url: https://developer.download.nvidia.com/compute/cuda/repos/{{ nvidia_distribution }}/x86_64/cuda-keyring_1.0-1_all.deb
+        url: https://developer.download.nvidia.com/compute/cuda/repos/{{ ansible_distribution | lower }}{{ ansible_distribution_version | replace('.','') }}/x86_64/cuda-keyring_1.0-1_all.deb
         dest: /tmp/cuda-keyring.deb
 
     - name: Add Nvidia Keyring
